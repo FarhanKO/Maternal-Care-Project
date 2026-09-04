@@ -64,16 +64,19 @@ public class AlarmActivity extends AppCompatActivity {
         open.setAllCaps(false);
         open.setTextSize(18);
         open.setOnClickListener(v -> {
-            SosAlarm.stopNoise();
+            SosAlarm.standDown(this);
             startActivity(new Intent(this, MainActivity.class)
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP));
             finish();
         });
 
         Button silence = new Button(this);
-        silence.setText("Silence the alarm");
+        silence.setText("Turn off alarm");
         silence.setAllCaps(false);
-        silence.setOnClickListener(v -> SosAlarm.stopNoise());
+        silence.setOnClickListener(v -> {
+            SosAlarm.standDown(this);
+            finish();
+        });
 
         LinearLayout.LayoutParams gap =
                 new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT,
