@@ -514,7 +514,10 @@ export function SosModal({ open, onClose, onAlertChange }: Props) {
                     <div className="space-y-2">
                       {guardians.map((g) => {
                         const isExpanded = expandedGuardianId === g.id;
-                        const fullWebUrl = `${GUARDIAN_APP_URL}/?t=${g.token}&api=${encodeURIComponent(`${reachable}/api`)}`;
+                        const baseGuardianUrl = reachable
+                          ? reachable.replace(/:\d+$/, ':5174')
+                          : GUARDIAN_APP_URL;
+                        const fullWebUrl = `${baseGuardianUrl}/?t=${g.token}&api=${encodeURIComponent(`${reachable}/api`)}`;
                         const directApiUrl = `${reachable}/api/guardian/${g.token}`;
                         const smsBody = `MaternalCare+ Guardian App Pairing Link:\n${fullWebUrl}\n\nPairing Code:\n${g.token}`;
                         const cleanPhone = g.phone ? g.phone.replace(/[^0-9+]/g, '') : '';
@@ -570,28 +573,8 @@ export function SosModal({ open, onClose, onAlertChange }: Props) {
                               <div className="mt-2 pt-2 border-t border-rose-200/50 space-y-2.5 text-[11px]">
                                 <div className="rounded-xl bg-white/90 p-2.5 border border-rose-100 space-y-2">
                                   <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                      1. Companion App Pairing Link
-                                    </label>
-                                    <div className="flex gap-1.5">
-                                      <input
-                                        readOnly
-                                        value={fullWebUrl}
-                                        className="flex-1 font-mono text-[10px] bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-ink outline-none"
-                                      />
-                                      <button
-                                        onClick={() => copyText(fullWebUrl, `link-${g.id}`)}
-                                        className="flex-none inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-rose-700"
-                                      >
-                                        <Copy className="h-3 w-3" />
-                                        {copiedField === `link-${g.id}` ? 'Copied!' : 'Copy Link'}
-                                      </button>
-                                    </div>
-                                  </div>
-
-                                  <div>
-                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                      2. Direct Token / Pairing Code
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-amber-900 mb-1">
+                                      🔑 Pairing Code (Recommended for Android APK)
                                     </label>
                                     <div className="flex gap-1.5 items-center">
                                       <code className="flex-1 font-mono text-[11px] font-bold bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 text-amber-900 tracking-wider overflow-x-auto">
@@ -609,7 +592,47 @@ export function SosModal({ open, onClose, onAlertChange }: Props) {
 
                                   <div>
                                     <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
-                                      3. Send Link to {g.name}
+                                      Direct API Endpoint URL
+                                    </label>
+                                    <div className="flex gap-1.5">
+                                      <input
+                                        readOnly
+                                        value={directApiUrl}
+                                        className="flex-1 font-mono text-[10px] bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-ink outline-none"
+                                      />
+                                      <button
+                                        onClick={() => copyText(directApiUrl, `api-${g.id}`)}
+                                        className="flex-none inline-flex items-center gap-1 rounded-lg bg-indigo-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-indigo-700"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                        {copiedField === `api-${g.id}` ? 'Copied!' : 'Copy API URL'}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                                      Web Companion Link
+                                    </label>
+                                    <div className="flex gap-1.5">
+                                      <input
+                                        readOnly
+                                        value={fullWebUrl}
+                                        className="flex-1 font-mono text-[10px] bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-ink outline-none"
+                                      />
+                                      <button
+                                        onClick={() => copyText(fullWebUrl, `link-${g.id}`)}
+                                        className="flex-none inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-rose-700"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                        {copiedField === `link-${g.id}` ? 'Copied!' : 'Copy Web Link'}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                                      Send Link to {g.name}
                                     </label>
                                     <div className="flex flex-wrap gap-1.5">
                                       <a
