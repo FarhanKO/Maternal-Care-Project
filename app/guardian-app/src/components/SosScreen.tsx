@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Check, MapPin, Phone, Siren, Vibrate, VolumeX } from 'lucide-react';
 import { canVibrate, isIOS, stopEmergency } from '@/lib/alert';
+import { nativeAlarmOff } from '@/lib/native';
 import type { SosAlert } from '@/lib/api';
 
 interface Props {
@@ -42,8 +43,9 @@ export function SosScreen({ alert, motherName, emergencyNumber, acknowledged, on
     return () => window.clearInterval(id);
   }, []);
 
-  const silence = () => {
+  const silence = async () => {
     stopEmergency();
+    await nativeAlarmOff();
     setSilenced(true);
   };
 
