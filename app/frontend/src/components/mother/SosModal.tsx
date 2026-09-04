@@ -2,8 +2,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Ambulance, BellRing, Check, Clock, Crosshair, Download, MapPin, Pencil, Phone, Plus,
-  ShieldCheck, Smartphone, Trash2, TriangleAlert, UserPlus, X,
+  Ambulance, BellRing, Check, Clock, Copy, Crosshair, Download, Key, MapPin, MessageCircle, Pencil, Phone, Plus,
+  Share2, ShieldCheck, Smartphone, Trash2, TriangleAlert, UserPlus, X,
 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { api } from '@/lib/api';
@@ -109,6 +109,18 @@ export function SosModal({ open, onClose, onAlertChange }: Props) {
   const [phone, setPhone] = useState('');
 
   const [copied, setCopied] = useState<string | null>(null);
+  const [expandedGuardianId, setExpandedGuardianId] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const copyText = async (text: string, key: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(key);
+      setTimeout(() => setCopiedField(null), 2500);
+    } catch {
+      /* ignore */
+    }
+  };
   /**
    * The address a guardian's phone can actually reach. API_ORIGIN is whatever
    * this browser used, which on the development machine is localhost — an
@@ -500,34 +512,141 @@ export function SosModal({ open, onClose, onAlertChange }: Props) {
                   {/* -------------------------------------- GUARDIANS */}
                   {phase === 'guardians' && (
                     <div className="space-y-2">
-                      {guardians.map((g) => (
-                        <div key={g.id}
-                          className="flex items-center gap-2.5 rounded-2xl border border-white/60 bg-white/60 px-3 py-2.5">
-                          <span className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-rose-500/12 text-rose-600 text-[11px] font-extrabold">
-                            {g.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-[13px] font-bold text-ink">{g.name}</div>
-                            <div className="text-[11px] font-semibold text-ink-muted">
-                              {[g.relation, g.phone].filter(Boolean).join(' · ') || 'No number saved'}
+                      {guardians.map((g) => {
+                        const isExpanded = expandedGuardianId === g.id;
+                        const fullWebUrl = `${GUARDIAN_APP_URL}/?t=${g.token}&api=${encodeURIComponent(`${reachable}/api`)}`;
+                        const directApiUrl = `${reachable}/api/guardian/${g.token}`;
+                        const smsBody = `MaternalCare+ Guardian App Pairing Link:\n${fullWebUrl}\n\nPairing Code:\n${g.token}`;
+                        const cleanPhone = g.phone ? g.phone.replace(/[^0-9+]/g, '') : '';
+                        const waHref = cleanPhone
+                          ? `https://wa.me/${cleanPhone.replace('+', '')}?text=${encodeURIComponent(smsBody)}`
+                          : `https://wa.me/?text=${encodeURIComponent(smsBody)}`;
+                        const smsHref = cleanPhone
+                          ? `sms:${cleanPhone}?body=${encodeURIComponent(smsBody)}`
+                          : `sms:?body=${encodeURIComponent(smsBody)}`;
+
+                        return (
+                          <div key={g.id} className="rounded-2xl border border-white/60 bg-white/70 p-3 space-y-2">
+                            <div className="flex items-center gap-2.5">
+                              <span className="grid h-9 w-9 flex-none place-items-center rounded-xl bg-rose-500/12 text-rose-600 text-[11px] font-extrabold">
+                                {g.name.split(' ').map((w) => w[0]).slice(0, 2).join('')}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="truncate text-[13px] font-bold text-ink">{g.name}</span>
+                                  {g.appLinked ? (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-emerald-700">
+                                      <Check className="h-2.5 w-2.5" /> App Linked
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-amber-700">
+                                      <Clock className="h-2.5 w-2.5" /> Pending
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="text-[11px] font-semibold text-ink-muted">
+                                  {[g.relation, g.phone].filter(Boolean).join(' · ') || 'No number saved'}
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setExpandedGuardianId(isExpanded ? null : g.id)}
+                                className={cn(
+                                  'flex-none rounded-xl px-2.5 py-1.5 text-[11px] font-bold transition flex items-center gap-1',
+                                  isExpanded
+                                    ? 'bg-rose-600 text-white'
+                                    : 'bg-rose-500/12 text-rose-700 hover:bg-rose-500/20'
+                                )}
+                              >
+                                <Key className="h-3 w-3" />
+                                {isExpanded ? 'Hide Link' : 'Pairing Link'}
+                              </button>
+                              <button onClick={() => removeGuardian(g.id)} aria-label={`Remove ${g.name}`}
+                                className="grid h-7 w-7 flex-none place-items-center rounded-lg text-ink-faint transition hover:bg-rose-500/10 hover:text-rose-600">
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
                             </div>
+
+                            {isExpanded && (
+                              <div className="mt-2 pt-2 border-t border-rose-200/50 space-y-2.5 text-[11px]">
+                                <div className="rounded-xl bg-white/90 p-2.5 border border-rose-100 space-y-2">
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                                      1. Companion App Pairing Link
+                                    </label>
+                                    <div className="flex gap-1.5">
+                                      <input
+                                        readOnly
+                                        value={fullWebUrl}
+                                        className="flex-1 font-mono text-[10px] bg-slate-50 border border-slate-200 rounded-lg px-2 py-1.5 text-ink outline-none"
+                                      />
+                                      <button
+                                        onClick={() => copyText(fullWebUrl, `link-${g.id}`)}
+                                        className="flex-none inline-flex items-center gap-1 rounded-lg bg-rose-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-rose-700"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                        {copiedField === `link-${g.id}` ? 'Copied!' : 'Copy Link'}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                                      2. Direct Token / Pairing Code
+                                    </label>
+                                    <div className="flex gap-1.5 items-center">
+                                      <code className="flex-1 font-mono text-[11px] font-bold bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 text-amber-900 tracking-wider overflow-x-auto">
+                                        {g.token}
+                                      </code>
+                                      <button
+                                        onClick={() => copyText(g.token, `token-${g.id}`)}
+                                        className="flex-none inline-flex items-center gap-1 rounded-lg bg-amber-600 px-2.5 py-1 text-[10px] font-bold text-white transition hover:bg-amber-700"
+                                      >
+                                        <Copy className="h-3 w-3" />
+                                        {copiedField === `token-${g.id}` ? 'Copied!' : 'Copy Code'}
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-[10px] font-bold uppercase tracking-wider text-ink-faint mb-1">
+                                      3. Send Link to {g.name}
+                                    </label>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      <a
+                                        href={waHref}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-emerald-700 transition"
+                                      >
+                                        <MessageCircle className="h-3 w-3" /> Send via WhatsApp
+                                      </a>
+                                      <a
+                                        href={smsHref}
+                                        className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-blue-700 transition"
+                                      >
+                                        <Phone className="h-3 w-3" /> Send via SMS
+                                      </a>
+                                      <button
+                                        onClick={() => shareLink(g)}
+                                        className="inline-flex items-center gap-1 rounded-lg bg-slate-700 px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-slate-800 transition"
+                                      >
+                                        <Share2 className="h-3 w-3" /> System Share
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="rounded-xl bg-rose-50/90 p-2.5 border border-rose-200 text-[10px] font-medium leading-relaxed text-ink-soft">
+                                  <strong className="block font-bold text-rose-900 mb-0.5">📲 Instructions for {g.name}:</strong>
+                                  1. Open the Guardian App on their Android phone.<br />
+                                  2. When prompted: <em>"Pair this app. Paste the personal link she sent you"</em>, paste the copied Link or Code above.<br />
+                                  3. Once paired, the app will automatically connect and show <span className="text-emerald-700 font-bold">App Linked</span>.
+                                </div>
+                              </div>
+                            )}
                           </div>
-                          <button
-                            onClick={() => shareLink(g)}
-                            aria-label={`Send ${g.name} their app link`}
-                            className={cn('flex-none rounded-full px-2 py-1 text-[9px] font-bold uppercase tracking-wide transition',
-                              copied === g.id
-                                ? 'bg-emerald-500/15 text-emerald-700'
-                                : 'bg-rose-500/12 text-rose-700 hover:bg-rose-500/20')}
-                          >
-                            {copied === g.id ? 'Copied' : 'Send app'}
-                          </button>
-                          <button onClick={() => removeGuardian(g.id)} aria-label={`Remove ${g.name}`}
-                            className="grid h-7 w-7 flex-none place-items-center rounded-lg text-ink-faint transition hover:bg-rose-500/10 hover:text-rose-600">
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      ))}
+                        );
+                      })}
 
                       {guardians.length > 0 && (
                         <p className="px-1 text-[10px] font-medium leading-relaxed text-ink-faint">
