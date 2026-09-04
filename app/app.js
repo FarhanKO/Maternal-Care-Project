@@ -74,23 +74,32 @@ if (hasClient) {
   app.use(express.static(CLIENT_DIR));
 }
 
-// Allow the Vite dev server to call the API during development
+// Allow the Vite dev server and Guardian APK to call the API
 app.use('/api', (req, res, next) => {
   const origin = allowedOrigin(req.headers.origin);
-  if (origin) {
+  if (req.path.startsWith('/guardian/')) {
+    // Guardian app capability tokens can be called from any origin (Android WebView, file://, localhost, etc.)
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  } else if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Vary', 'Origin');
   }
   // the session lives in a cookie, and a cross-origin fetch will neither send
   // nor store one without this — the dev server is a different origin
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', 'Content-Type');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   res.header('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
   // the report download reads the filename off this header; without exposing it
   // a cross-origin fetch cannot see it and every report saves under one name
   res.header('Access-Control-Expose-Headers', 'Content-Disposition');
   if (req.method === 'OPTIONS') return res.sendStatus(204);
   next();
+});
+
+// Route alias: Allow /guardian/* without /api prefix so links without /api work for companion apps
+app.use('/guardian', (req, res, next) => {
+  req.url = '/guardian' + req.url;
+  return apiRoutes(req, res, next);
 });
 
 /*
