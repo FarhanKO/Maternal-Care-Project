@@ -111,6 +111,7 @@ export function App() {
       await api.acknowledge(token);
       setAcknowledged(true);
       stopEmergency();
+      await nativeAlarmOff();
     } catch { /* she still sees the alert either way */ }
   };
 
